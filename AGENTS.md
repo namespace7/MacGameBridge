@@ -35,3 +35,14 @@ legitimate Windows-game compatibility environments on Apple Silicon.
 - eFootball PES 2021
 - Need for Speed: Most Wanted (confirm 2005 vs 2012)
 - GTA (GTA V Legacy is provisional from prior planning; confirm edition)
+
+## Current implementation guidance
+- M1 hardware intelligence is committed; preserve the `DiagnosticReport` M1 JSON shape unless a deliberate schema-version change is documented.
+- M2.1 runtime discovery is read-only. It may inspect known `.app` bundle directories, `Info.plist`, executable permissions, PATH directories, and symlink destinations.
+- Do not execute Wine, CrossOver, Game Porting Toolkit, or game binaries during discovery.
+- Do not recursively scan the entire disk. Keep search roots explicit and injectable for tests.
+- A detected runtime is `detected_unverified`; never describe it as launch-tested or game-compatible.
+- Test discovery using temporary directories and fixture app bundles. Do not depend on a developer machine having CrossOver, Whisky, Wine, or Game Porting Toolkit installed.
+- On the current developer Mac, run tests with the Testing macro plugin explicitly supplied:
+  `swift test -Xswiftc -plugin-path -Xswiftc /Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing`
+- OpenCode should use the repository's `AGENTS.md`, propose bounded changes, ask before shell commands, and never commit or push without explicit human approval.

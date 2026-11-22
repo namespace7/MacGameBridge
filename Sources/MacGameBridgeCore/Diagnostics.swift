@@ -16,7 +16,7 @@ public enum Diagnostics {
         let gpu = detectGPU()
         let rosetta = detectRosetta()
         let storage = detectStorage()
-        let runtimes = detectRuntimes()
+        let runtimes = RuntimeDiscovery.discover(paths: .current).legacyDetections
 
         return DiagnosticReport(
             schemaVersion: "1.0",
@@ -107,56 +107,6 @@ public enum Diagnostics {
             totalBytes: total,
             availableBytes: available
         )
-    }
-
-    private static func detectRuntimes() -> [RuntimeDetection] {
-        let fileManager = FileManager.default
-        let home = fileManager.homeDirectoryForCurrentUser.path
-        var results: [RuntimeDetection] = []
-
-        let crossOverPaths = [
-            "/Applications/CrossOver.app",
-            "\(home)/Applications/CrossOver.app"
-        ]
-        results.append(appDetection(name: "CrossOver", paths: crossOverPaths))
-
-        let whiskyPaths = [
-            "/Applications/Whisky.app",
-            "\(home)/Applications/Whisky.app"
-        ]
-        results.append(appDetection(name: "Whisky", paths: whiskyPaths))
-
-        let winePath = firstExecutable(named: ["wine", "wine64"])
-        results.append(RuntimeDetection(
-            name: "Wine",
-            status: winePath == nil ? "not_detected" : "detected_unverified",
-            evidence: winePath
-        ))
-
-        let toolkitPath = firstExecutable(named: ["gameportingtoolkit"])
-        results.append(RuntimeDetection(
-            name: "Game Porting Toolkit",
-            status: toolkitPath == nil ? "not_detected" : "detected_unverified",
-            evidence: toolkitPath
-        ))
-
-        return results
-    }
-
-    private static func appDetection(name: String, paths: [String]) -> RuntimeDetection {
-        if let path = paths.first(where: { FileManager.default.fileExists(atPath: $0) }) {
-            return RuntimeDetection(name: name, status: "detected_unverified", evidence: path)
-        }
-        return RuntimeDetection(name: name, status: "not_detected", evidence: nil)
-    }
-
-    private static func firstExecutable(named names: [String]) -> String? {
-        for name in names {
-            if let path = command("/usr/bin/which", [name]), !path.isEmpty {
-                return path.components(separatedBy: .newlines).first
-            }
-        }
-        return nil
     }
 
     private static func detectChip() -> String {

@@ -21,6 +21,22 @@ case "diagnostics":
     } else {
         Diagnostics.printHumanReadable(report)
     }
+case "runtimes":
+    let report = RuntimeDiscovery.discover(paths: .current)
+    if arguments.contains("--json") {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+            let data = try encoder.encode(report)
+            print(String(decoding: data, as: UTF8.self))
+        } catch {
+            fputs("Could not encode runtime discovery: \(error)\n", stderr)
+            exit(1)
+        }
+    } else {
+        RuntimeDiscovery.printHumanReadable(report)
+    }
 case "games":
     GameCatalog.printGames()
 case "help", "--help", "-h":
@@ -29,12 +45,15 @@ case "help", "--help", "-h":
 
     Usage:
       macgamebridge diagnostics          Inspect this Mac
-      macgamebridge diagnostics --json   Emit machine-readable JSON
+      macgamebridge diagnostics --json   Emit host diagnostics as JSON
+      macgamebridge runtimes             Discover compatibility runtimes
+      macgamebridge runtimes --json      Emit runtime inventory as JSON
       macgamebridge games                List configured game profiles
       macgamebridge help                 Show this help
 
-    Diagnostics are read-only. Runtime detection does not prove that a runtime
-    can launch a particular game. No games, runtimes, or drivers are installed.
+    Discovery is read-only. Finding a runtime does not prove that it can launch
+    a particular game. MacGameBridge does not install software, modify bottles,
+    download games, or bypass DRM/anti-cheat.
     """)
 default:
     fputs("Unknown command: \(command)\nRun 'macgamebridge help'.\n", stderr)
