@@ -1,0 +1,6 @@
+.build/
+.DS_Store
+.swiftpm/
+*.xcuserstate
+.idea/
+.vscode/
