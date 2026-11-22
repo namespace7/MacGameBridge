@@ -1,15 +1,15 @@
 import Foundation
 
-struct GameProfile: Decodable {
-    let id: String
-    let title: String
-    let editionsToInvestigate: [String]
-    let primaryRisks: [String]
-    let initialMode: String
+public struct GameProfile: Decodable {
+    public let id: String
+    public let title: String
+    public let editionsToInvestigate: [String]
+    public let primaryRisks: [String]
+    public let initialMode: String
 }
 
-enum GameCatalog {
-    static func printGames() {
+public enum GameCatalog {
+    public static func printGames() {
         let url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
             .appendingPathComponent("database/games.json")
 

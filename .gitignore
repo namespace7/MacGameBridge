@@ -1,6 +1,10 @@
+# SwiftPM
 .build/
-.DS_Store
 .swiftpm/
+.DS_Store
 *.xcuserstate
 .idea/
 .vscode/
+
+# Local machine diagnostics can contain host-specific information
+reports/*.json
