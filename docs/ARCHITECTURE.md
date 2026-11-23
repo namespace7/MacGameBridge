@@ -28,3 +28,18 @@ The first milestone is a read-only CLI:
 - `diagnostics`: report host architecture, macOS version, memory, Rosetta test, disk info.
 - `games`: display configured test profiles.
 No runtime installation or system mutation is performed by the MVP.
+
+## Environment metadata layer (M3)
+Environments are persistent metadata records, not provisioned prefixes:
+- `GameEnvironment` references a game profile, an optional discovered runtime
+  installation, and an intended absolute prefix URL.
+- `EnvironmentRepository` stores records in an injectable JSON file and uses
+  atomic writes, stable serialization, and duplicate-ID protection.
+- `EnvironmentValidator` is read-only and reports reference/path problems.
+  A `planned` record is not a prefix, and directory presence is not evidence of
+  Wine prefix initialization.
+- The `environments` CLI creates metadata only. It never creates a prefix,
+  invokes a runtime, launches a game, or changes lifecycle state to provisioned.
+
+Existing discovery, provider scanning, and deterministic selection capabilities
+remain unchanged and are reused only as read-only sources for validation.

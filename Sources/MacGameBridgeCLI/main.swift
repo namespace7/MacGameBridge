@@ -71,6 +71,17 @@ case "runtimes":
             RuntimeDiscovery.printHumanReadable(report)
         }
     }
+case "environments":
+    do {
+        let output = try EnvironmentCLI.run(Array(arguments.dropFirst()))
+        print(output, terminator: "")
+    } catch let error as EnvironmentCLIError {
+        fputs("\(error.description)\n", stderr)
+        exit(error.exitCode)
+    } catch {
+        fputs("Error: \(error)\n", stderr)
+        exit(1)
+    }
 case "games":
     GameCatalog.printGames()
 case "help", "--help", "-h":
@@ -88,13 +99,22 @@ case "help", "--help", "-h":
       macgamebridge runtimes --select    Discover runtimes and select the best eligible one
       macgamebridge runtimes --select --json
                                          Emit structured selection report as JSON
+      macgamebridge environments list [--json]
+                                         List recorded environments
+      macgamebridge environments create --game <id> --name <name> --prefix <path> [--json]
+                                         Save planned environment metadata only
+      macgamebridge environments show <id> [--json]
+                                         Show one environment record
+      macgamebridge environments validate <id> [--json]
+                                         Read-only metadata validation
       macgamebridge games                List configured game profiles
       macgamebridge help                 Show this help
 
-    Discovery and selection are read-only. No runtime or game binary is launched.
-    Finding a runtime does not prove that it can launch a particular game.
-    MacGameBridge does not install software, modify bottles, download games, or
-    bypass DRM/anti-cheat.
+    Discovery, selection, and environment validation are read-only. No runtime or
+    game binary is launched. Finding a runtime does not prove that it can launch
+    a particular game. Creating an environment saves metadata only; it does not
+    create a prefix. MacGameBridge does not install software, modify bottles,
+    download games, or bypass DRM/anti-cheat.
     """)
 default:
     fputs("Unknown command: \(command)\nRun 'macgamebridge help'.\n", stderr)
