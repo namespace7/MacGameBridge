@@ -5,8 +5,12 @@ public enum Diagnostics {
     private static let dataVolume = "/System/Volumes/Data"
 
     public static func collect() -> DiagnosticReport {
+        // Architecture and Rosetta probing is shared with M2.4 host capability
+        // detection so both paths use exactly the same commands and semantics.
+        let capabilities = HostCapabilitiesDetector().detect()
+
         let host = HostInfo(
-            architecture: command("/usr/bin/uname", ["-m"]) ?? "unknown",
+            architecture: capabilities.architectureDetail,
             chip: detectChip(),
             physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory,
             macOSVersion: command("/usr/bin/sw_vers", ["-productVersion"]) ?? "unknown",
@@ -14,7 +18,7 @@ public enum Diagnostics {
         )
 
         let gpu = detectGPU()
-        let rosetta = detectRosetta()
+        let rosetta = capabilities.rosettaInfo
         let storage = detectStorage()
         let runtimes = RuntimeDiscovery.discover(paths: .current).legacyDetections
 
@@ -78,25 +82,6 @@ public enum Diagnostics {
         )
     }
 
-    private static func detectRosetta() -> RosettaInfo {
-        guard let output = command("/usr/bin/arch", ["-x86_64", "/usr/bin/uname", "-m"]) else {
-            return RosettaInfo(
-                status: "not_verified",
-                translatedArchitecture: nil,
-                detail: "The x86_64 execution probe failed."
-            )
-        }
-
-        let translated = output.trimmingCharacters(in: .whitespacesAndNewlines)
-        return RosettaInfo(
-            status: translated == "x86_64" ? "verified" : "not_verified",
-            translatedArchitecture: translated,
-            detail: translated == "x86_64"
-                ? "An x86_64 macOS process executed successfully."
-                : "The probe returned an unexpected architecture."
-        )
-    }
-
     private static func detectStorage() -> StorageInfo {
         let attributes = try? FileManager.default.attributesOfFileSystem(forPath: dataVolume)
         let total = (attributes?[.systemSize] as? NSNumber)?.uint64Value
@@ -126,24 +111,7 @@ public enum Diagnostics {
     }
 
     private static func command(_ executable: String, _ arguments: [String]) -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-
-        let stdout = Pipe()
-        process.standardOutput = stdout
-        process.standardError = Pipe()
-
-        do {
-            try process.run()
-            let data = stdout.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return nil }
-            return String(data: data, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        } catch {
-            return nil
-        }
+        SystemCommandRunner().execute(executable, arguments)
     }
 
     private static func gb(_ bytes: UInt64) -> Double {

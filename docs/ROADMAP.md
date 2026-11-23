@@ -18,6 +18,14 @@
 - [ ] Report versions and paths
 - [ ] No automatic installation yet
 
+## M2.4 — Runtime selection integration
+- [x] Shared host capability detection with injectable system probes
+- [x] Diagnostics reuses the shared host detection
+- [x] Read-only integration service wiring discovery to the pure selector
+- [x] `runtimes --select` and `runtimes --select --json` CLI commands
+- [x] Host detection, selection integration, and report JSON tests
+- [x] Architecture documentation
+
 ## M3 — Isolated game environments
 - [ ] Define bottle/prefix model
 - [ ] Runtime adapter protocol
