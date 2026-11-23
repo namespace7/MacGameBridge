@@ -31,17 +31,35 @@ enum EnvironmentTestFixtures {
 
     static func installation(
         id: String = "wine:/usr/local/bin/wine64",
+        provider: RuntimeProviderID = .wine,
         status: RuntimeInstallationStatus = .validated,
-        architecture: RuntimeArchitecture = .arm64
+        architecture: RuntimeArchitecture = .arm64,
+        bundleURL: URL? = nil,
+        path: String = "/usr/local/bin/wine64"
     ) -> ProviderInstallation {
         ProviderInstallation(
-            provider: .wine,
-            displayName: "Wine",
-            wineExecutableURL: URL(fileURLWithPath: "/usr/local/bin/wine64"),
+            provider: provider,
+            displayName: provider == .wine ? "Wine" : provider.rawValue,
+            bundleURL: bundleURL,
+            wineExecutableURL: provider == .wine ? URL(fileURLWithPath: path) : nil,
             version: "1.0",
             architecture: architecture,
             status: status,
             evidence: ["Test fixture: \(id)"]
+        )
+    }
+
+    /// Fixture host facts. No system probe is run by any test.
+    static func host(
+        architecture: RuntimeArchitecture = .arm64,
+        rosetta: RosettaVerificationStatus = .verified
+    ) -> HostCapabilities {
+        HostCapabilities(
+            nativeArchitecture: architecture,
+            architectureDetail: architecture.rawValue,
+            rosettaStatus: rosetta,
+            rosettaDetail: "Test fixture",
+            translatedArchitecture: rosetta == .verified ? "x86_64" : nil
         )
     }
 
@@ -91,6 +109,8 @@ enum EnvironmentTestFixtures {
         repository: EnvironmentRepository,
         profiles: [GameProfile] = [profile()],
         installations: [ProviderInstallation] = [],
+        host: HostCapabilities = EnvironmentTestFixtures.host(),
+        adapterRegistry: RuntimeAdapterRegistry = .default,
         now: @escaping () -> Date = { fixedDate },
         makeEnvironmentID: @escaping () -> String = { "env-test-1" }
     ) -> EnvironmentCLIServices {
@@ -100,7 +120,9 @@ enum EnvironmentTestFixtures {
             runtimeInstallations: { installations },
             fileManager: .default,
             now: now,
-            makeEnvironmentID: makeEnvironmentID
+            makeEnvironmentID: makeEnvironmentID,
+            hostCapabilities: { host },
+            adapterRegistry: adapterRegistry
         )
     }
 

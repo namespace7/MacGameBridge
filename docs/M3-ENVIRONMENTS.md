@@ -99,11 +99,17 @@ macgamebridge environments list [--json]
 macgamebridge environments create --game <id> --name <name> --prefix <absolute-path> [--json]
 macgamebridge environments show <id> [--json]
 macgamebridge environments validate <id> [--json]
+macgamebridge environments pin-runtime <id> --runtime <installation-id> [--replace] [--json]
+macgamebridge environments unpin-runtime <id> [--json]
 macgamebridge environments help
 ```
 
 `create` validates arguments, checks the game ID, saves metadata, and returns.
 It does not scan or invoke a runtime and does not create the prefix directory.
+
+M3.1 adds exact runtime pinning. See `docs/M3.1-RUNTIME-ADAPTERS.md` for the
+adapter contract and pin semantics: pins are metadata only, never launch a game,
+and do not promote the environment to `provisioned`.
 
 JSON shapes added by this milestone:
 
@@ -140,7 +146,7 @@ runtime installations. They never depend on real runtimes being installed.
 ## Limitations
 
 - No provisioning, prefix initialization, or launch support.
-- No runtime pinning command; CLI-created records always have a nil runtime ID.
+- CLI-created records still have a nil runtime ID; pinning is a separate M3.1 command.
 - No per-game logs or compatibility evidence records.
 - No cross-process file locking; atomic writes prevent partial files but do not
   merge simultaneous writes from separate processes.

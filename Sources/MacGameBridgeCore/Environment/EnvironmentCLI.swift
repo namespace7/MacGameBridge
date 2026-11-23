@@ -13,6 +13,17 @@ public enum EnvironmentCLIError: Error, Equatable, CustomStringConvertible {
     case invalidPrefix(String, String)
     case duplicateEnvironment(id: String, gameProfileID: String, prefixPath: String)
     case environmentNotFound(String)
+    case runtimeNotFound(String)
+    case unsupportedRuntimeProvider(String)
+    case runtimeProviderMismatch(expected: String, actual: String)
+    case runtimeAdapterMissingCapabilities(provider: String, missing: [String])
+    case unvalidatedRuntime(String)
+    case incompatibleRuntime(String, String)
+    case invalidRuntimeInstallation(String, String)
+    case replacementRequiresReplace(currentID: String, requestedID: String)
+    case runtimeNotPinned(String)
+    case staleEnvironment(String)
+    case duplicateEnvironmentRecord(String)
     case repository(String)
 
     public var description: String {
@@ -40,6 +51,28 @@ public enum EnvironmentCLIError: Error, Equatable, CustomStringConvertible {
             return "An environment already exists for game '\(gameProfileID)' at prefix '\(prefixPath)' with ID '\(id)'. Run `macgamebridge environments show \(id)` or choose a different prefix."
         case .environmentNotFound(let id):
             return "No environment with ID '\(id)'. Run `macgamebridge environments list` to see recorded IDs."
+        case .runtimeNotFound(let id):
+            return "No discovered runtime installation has the exact ID '\(id)'. No substitute was selected. Run `macgamebridge runtimes --providers` to copy a current ID."
+        case .unsupportedRuntimeProvider(let provider):
+            return "Runtime provider '\(provider)' has no adapter in M3.1. Only standalone Wine can be pinned. No record was changed."
+        case .runtimeProviderMismatch(let expected, let actual):
+            return "Runtime adapter '\(expected)' cannot validate provider '\(actual)'. No record was changed."
+        case .runtimeAdapterMissingCapabilities(let provider, let missing):
+            return "Runtime adapter for provider '\(provider)' does not support required capabilities: \(missing.joined(separator: ", ")). Pinning was rejected and no record was changed."
+        case .unvalidatedRuntime(let id):
+            return "Runtime installation '\(id)' is not validated by read-only discovery. No record was changed."
+        case .incompatibleRuntime(let id, let reason):
+            return "Runtime installation '\(id)' is incompatible with this host: \(reason). No fallback was used and no record was changed."
+        case .invalidRuntimeInstallation(let id, let reason):
+            return "Runtime installation '\(id)' is not eligible for pinning: \(reason) No record was changed."
+        case .replacementRequiresReplace(let currentID, let requestedID):
+            return "Environment is pinned to '\(currentID)'. Pass --replace to pin '\(requestedID)' instead. No record was changed."
+        case .runtimeNotPinned(let id):
+            return "Environment '\(id)' has no runtime pin to remove."
+        case .staleEnvironment(let id):
+            return "Environment '\(id)' changed since it was read. No record was changed; re-read it and retry."
+        case .duplicateEnvironmentRecord(let id):
+            return "The registry contains duplicate records for environment '\(id)'. No record was changed."
         case .repository(let reason):
             return "Environment registry error: \(reason)"
         }
@@ -53,7 +86,12 @@ public enum EnvironmentCLIError: Error, Equatable, CustomStringConvertible {
              .invalidGameID, .invalidPrefix:
             return 2
         case .gameCatalogUnavailable, .duplicateEnvironment,
-             .environmentNotFound, .repository:
+             .environmentNotFound, .runtimeNotFound, .unsupportedRuntimeProvider,
+             .runtimeProviderMismatch, .runtimeAdapterMissingCapabilities,
+             .unvalidatedRuntime, .incompatibleRuntime,
+             .invalidRuntimeInstallation, .replacementRequiresReplace,
+             .runtimeNotPinned, .staleEnvironment, .duplicateEnvironmentRecord,
+             .repository:
             return 1
         }
     }
@@ -64,6 +102,8 @@ public enum EnvironmentCommand: Equatable, Sendable {
     case create(gameID: String, name: String, prefixPath: String, asJSON: Bool)
     case show(id: String, asJSON: Bool)
     case validate(id: String, asJSON: Bool)
+    case pinRuntime(id: String, runtimeID: String, replace: Bool, asJSON: Bool)
+    case unpinRuntime(id: String, asJSON: Bool)
     case help
 }
 
@@ -79,6 +119,11 @@ public struct EnvironmentCLIServices {
     public let now: () -> Date
     public let makeEnvironmentID: () -> String
     public let validatePrefixPath: (String) throws -> URL
+    /// Injected host facts for adapter architecture validation. Production uses
+    /// the read-only host detector; tests supply a stub.
+    public let hostCapabilities: () -> HostCapabilities
+    /// Registry used only by runtime pinning. Unsupported providers fail explicitly.
+    public let adapterRegistry: RuntimeAdapterRegistry
 
     public init(
         repository: EnvironmentRepository,
@@ -87,7 +132,9 @@ public struct EnvironmentCLIServices {
         fileManager: FileManager = .default,
         now: @escaping () -> Date = { Date() },
         makeEnvironmentID: @escaping () -> String = { "env-\(UUID().uuidString)" },
-        validatePrefixPath: @escaping (String) throws -> URL = { try EnvironmentPrefixPolicy.validate($0) }
+        validatePrefixPath: @escaping (String) throws -> URL = { try EnvironmentPrefixPolicy.validate($0) },
+        hostCapabilities: @escaping () -> HostCapabilities = { HostCapabilitiesDetector().detect() },
+        adapterRegistry: RuntimeAdapterRegistry = .default
     ) {
         self.repository = repository
         self.loadGameProfiles = loadGameProfiles
@@ -96,6 +143,8 @@ public struct EnvironmentCLIServices {
         self.now = now
         self.makeEnvironmentID = makeEnvironmentID
         self.validatePrefixPath = validatePrefixPath
+        self.hostCapabilities = hostCapabilities
+        self.adapterRegistry = adapterRegistry
     }
 
     public static var production: EnvironmentCLIServices {
@@ -118,7 +167,7 @@ public enum EnvironmentCLI {
         let environments: [GameEnvironment]
     }
 
-    public static let shortUsage = "Usage: macgamebridge environments list|create|show|validate [options]"
+    public static let shortUsage = "Usage: macgamebridge environments list|create|show|validate|pin-runtime|unpin-runtime [options]"
 
     public static let helpText = """
     MacGameBridge — environment metadata manager
@@ -128,11 +177,18 @@ public enum EnvironmentCLI {
       macgamebridge environments create --game <id> --name <name> --prefix <absolute-path> [--json]
       macgamebridge environments show <id> [--json]
       macgamebridge environments validate <id> [--json]
+      macgamebridge environments pin-runtime <id> --runtime <installation-id> [--replace] [--json]
+      macgamebridge environments unpin-runtime <id> [--json]
       macgamebridge environments help
 
-    Creation saves metadata only. It never creates a prefix directory, runs Wine,
-    installs software, or changes system settings. Recorded environments start as
-    'planned'; this MVP has no provisioning step.
+    Copy the exact installation ID from `macgamebridge runtimes --providers`.
+    Pinning is exact: missing, unvalidated, incompatible, or unsupported
+    installations are rejected without substituting a different runtime. Use
+    --replace only when intentionally changing an existing pin.
+
+    All commands save metadata only. They never create a prefix directory, run
+    Wine, install software, or change system settings. Recorded environments stay
+    'planned'; this milestone has no provisioning or launch step.
 
     """
 
@@ -157,7 +213,9 @@ public enum EnvironmentCLI {
             return .list(asJSON: asJSON)
         case "create":
             return try parseCreate(Array(arguments.dropFirst()))
-        case "show", "validate":
+        case "pin-runtime":
+            return try parsePinRuntime(Array(arguments.dropFirst()))
+        case "show", "validate", "unpin-runtime":
             return try parseIdentifierCommand(subcommand, arguments: Array(arguments.dropFirst()))
         default:
             throw EnvironmentCLIError.unknownSubcommand(subcommand)
@@ -242,9 +300,64 @@ public enum EnvironmentCLI {
             throw EnvironmentCLIError.missingOption("<id>")
         }
 
-        return subcommand == "show"
-            ? .show(id: id, asJSON: asJSON)
-            : .validate(id: id, asJSON: asJSON)
+        switch subcommand {
+        case "show":
+            return .show(id: id, asJSON: asJSON)
+        case "validate":
+            return .validate(id: id, asJSON: asJSON)
+        default:
+            return .unpinRuntime(id: id, asJSON: asJSON)
+        }
+    }
+
+    /// Parse `pin-runtime` without any provider logic: the runner owns the
+    /// adapter/pinning service call.
+    private static func parsePinRuntime(_ arguments: [String]) throws -> EnvironmentCommand {
+        var id: String?
+        var runtimeID: String?
+        var replace = false
+        var asJSON = false
+
+        var index = 0
+        while index < arguments.count {
+            let argument = arguments[index]
+            switch argument {
+            case "--runtime":
+                guard index + 1 < arguments.count,
+                      !arguments[index + 1].hasPrefix("--") else {
+                    throw EnvironmentCLIError.missingOption("--runtime")
+                }
+                guard runtimeID == nil else {
+                    throw EnvironmentCLIError.invalidOptionValue("--runtime", "specified more than once")
+                }
+                runtimeID = arguments[index + 1]
+                index += 2
+            case "--replace":
+                replace = true
+                index += 1
+            case "--json":
+                asJSON = true
+                index += 1
+            default:
+                if argument.hasPrefix("--") {
+                    throw EnvironmentCLIError.unknownOption(argument)
+                }
+                guard id == nil else {
+                    throw EnvironmentCLIError.unexpectedArgument(argument)
+                }
+                id = argument
+                index += 1
+            }
+        }
+
+        guard let id, !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw EnvironmentCLIError.missingOption("<id>")
+        }
+        guard let runtimeID, !runtimeID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw EnvironmentCLIError.missingOption("--runtime")
+        }
+
+        return .pinRuntime(id: id, runtimeID: runtimeID, replace: replace, asJSON: asJSON)
     }
 
     // MARK: - Running
@@ -274,6 +387,13 @@ public enum EnvironmentCLI {
             return try show(id: id, asJSON: asJSON, services: services)
         case .validate(let id, let asJSON):
             return try validate(id: id, asJSON: asJSON, services: services)
+        case .pinRuntime(let id, let runtimeID, let replace, let asJSON):
+            return try pinRuntime(
+                id: id, runtimeID: runtimeID, replace: replace,
+                asJSON: asJSON, services: services
+            )
+        case .unpinRuntime(let id, let asJSON):
+            return try unpinRuntime(id: id, asJSON: asJSON, services: services)
         }
     }
 
@@ -449,6 +569,121 @@ public enum EnvironmentCLI {
         lines.append("")
         lines.append("Validation is read-only. No prefix was initialized and no runtime was launched.")
         return lines.joined(separator: "\n") + "\n"
+    }
+
+    private static func pinRuntime(
+        id: String,
+        runtimeID: String,
+        replace: Bool,
+        asJSON: Bool,
+        services: EnvironmentCLIServices
+    ) throws -> String {
+        let changed: GameEnvironment
+        do {
+            changed = try RuntimePinningService.pin(
+                environmentID: id,
+                runtimeID: runtimeID,
+                replace: replace,
+                using: pinningDependencies(services: services)
+            )
+        } catch let error as RuntimePinningError {
+            throw mapPinningError(error)
+        }
+
+        if asJSON { return try encode(changed) }
+        let formatter = ISO8601DateFormatter()
+        return """
+        Pinned exact runtime \(changed.runtimeInstallationID ?? runtimeID) to environment \(changed.id).
+          Name:  \(changed.name)
+          Game:  \(changed.gameProfileID)
+          Intended prefix: \(changed.prefixPath) (intended path only; no directory was created)
+          Recorded state: \(changed.lifecycleState.rawValue) (metadata only)
+          Updated: \(formatter.string(from: changed.updatedAt))
+
+        This is a metadata pin only. No runtime was launched, no prefix was initialized,
+        and the pin is not evidence that any game will launch or work.
+        """
+    }
+
+    private static func unpinRuntime(
+        id: String,
+        asJSON: Bool,
+        services: EnvironmentCLIServices
+    ) throws -> String {
+        let changed: GameEnvironment
+        do {
+            changed = try RuntimePinningService.unpin(
+                environmentID: id,
+                using: pinningDependencies(services: services)
+            )
+        } catch let error as RuntimePinningError {
+            throw mapPinningError(error)
+        }
+
+        if asJSON { return try encode(changed) }
+        let formatter = ISO8601DateFormatter()
+        return """
+        Removed the runtime pin from environment \(changed.id).
+          Name:  \(changed.name)
+          Game:  \(changed.gameProfileID)
+          Runtime: not pinned
+          Intended prefix: \(changed.prefixPath) (intended path only; no directory was created)
+          Recorded state: \(changed.lifecycleState.rawValue) (metadata only)
+          Updated: \(formatter.string(from: changed.updatedAt))
+
+        Only the pin and update timestamp changed. No runtime or prefix was modified.
+        """
+    }
+
+    private static func pinningDependencies(
+        services: EnvironmentCLIServices
+    ) -> RuntimePinningDependencies {
+        RuntimePinningDependencies(
+            repository: services.repository,
+            installations: services.runtimeInstallations,
+            hostCapabilities: services.hostCapabilities,
+            adapterRegistry: services.adapterRegistry,
+            now: services.now
+        )
+    }
+
+    private static func mapPinningError(_ error: RuntimePinningError) -> EnvironmentCLIError {
+        switch error {
+        case .environmentNotFound(let id):
+            return .environmentNotFound(id)
+        case .runtimeIDMissing:
+            return .missingOption("--runtime")
+        case .ambiguousRuntimeID(let id):
+            return .invalidRuntimeInstallation(id, "the ID matches more than one discovered installation.")
+        case .runtimeNotFound(let id):
+            return .runtimeNotFound(id)
+        case .unsupportedProvider(let provider):
+            return .unsupportedRuntimeProvider(provider.rawValue)
+        case .providerMismatch(let expected, let actual):
+            return .runtimeProviderMismatch(expected: expected.rawValue, actual: actual.rawValue)
+        case .adapterMissingCapabilities(let provider, let missing):
+            return .runtimeAdapterMissingCapabilities(
+                provider: provider.rawValue,
+                missing: missing.map(\.rawValue)
+            )
+        case .unvalidatedRuntime(let id):
+            return .unvalidatedRuntime(id)
+        case .incompatibleRuntime(let id, let reason):
+            return .incompatibleRuntime(id, reason.description)
+        case .invalidRuntimeInstallation(let id, let issues):
+            let details = issues.map(\.message).joined(separator: " ")
+            return .invalidRuntimeInstallation(id, details)
+        case .replacementRequiresReplace(let currentID, let requestedID):
+            return .replacementRequiresReplace(currentID: currentID, requestedID: requestedID)
+        case .runtimeNotPinned(let id):
+            return .runtimeNotPinned(id)
+        case .staleEnvironment(let id):
+            return .staleEnvironment(id)
+        case .duplicateEnvironmentRecord(let id):
+            return .duplicateEnvironmentRecord(id)
+        case .repository(let error):
+            return .repository(error.description)
+        }
     }
 
     // MARK: - Helpers

@@ -43,3 +43,28 @@ Environments are persistent metadata records, not provisioned prefixes:
 
 Existing discovery, provider scanning, and deterministic selection capabilities
 remain unchanged and are reused only as read-only sources for validation.
+
+## Runtime adapters and exact pinning (M3.1)
+
+Runtime adapters are the boundary between provider discoveries and environment
+metadata:
+
+- `RuntimeAdapter` exposes the supported provider ID, declared capabilities,
+  and read-only validation of one `ProviderInstallation` against injected
+  `HostCapabilities`.
+- `RuntimeAdapterRegistry` resolves an adapter by provider ID. Providers without
+  an implementation return an explicit unsupported-provider error; discovery of
+  a CrossOver, Whisky, or Sikarugir installation does not imply adapter support.
+- `WineRuntimeAdapter` is the only M3.1 adapter. It accepts the standalone Wine
+  shape produced by `RuntimeScanner` and reuses `ArchitectureCompatibility`.
+- `RuntimePinningService` requires an exact match with a discovered
+  `ProviderInstallation.id`, applies the existing exact-installation selection
+  policy with fallback disabled, calls the registered adapter, and asks the
+  repository for a conditional update. It never chooses a "better" runtime.
+- `EnvironmentCLI` only parses options and renders results. Provider decisions
+  stay in adapters and the pinning service, so future provisioning and launch
+  operations can be added behind the same contract.
+
+Validation and pinning remain read-only with respect to runtimes and prefixes:
+no binary is executed, no prefix is created or modified, and lifecycle state is
+never promoted to `provisioned`. See `docs/M3.1-RUNTIME-ADAPTERS.md`.

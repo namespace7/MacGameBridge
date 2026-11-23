@@ -107,6 +107,10 @@ case "help", "--help", "-h":
                                          Show one environment record
       macgamebridge environments validate <id> [--json]
                                          Read-only metadata validation
+      macgamebridge environments pin-runtime <id> --runtime <installation-id> [--replace] [--json]
+                                          Pin an exact discovered runtime ID (metadata only)
+      macgamebridge environments unpin-runtime <id> [--json]
+                                          Remove a runtime pin (metadata only)
       macgamebridge games                List configured game profiles
       macgamebridge help                 Show this help
 
@@ -135,6 +139,8 @@ private func printProviderReport(_ report: RuntimeProviderReport) {
 
     for installation in report.installations {
         print("\(installation.displayName) [\(installation.provider.rawValue)]")
+        // This is the exact value accepted by `environments pin-runtime --runtime`.
+        print("  ID: \(installation.id)")
         print("  Status: \(installation.status.rawValue)")
 
         if let bundle = installation.bundleURL {
@@ -157,6 +163,7 @@ private func printProviderReport(_ report: RuntimeProviderReport) {
         print("")
     }
 
+    print("Copy an ID above with: macgamebridge environments pin-runtime <environment-id> --runtime <ID>")
     print("Important: validation inspects file metadata without running any")
     print("binary. A validated runtime may still not launch a particular game.")
 }

@@ -66,6 +66,9 @@ public enum RuntimeDiscovery {
             }
 
             for installation in finding.installations {
+                // The exact ID is displayed for copy/paste. Pinning uses the
+                // provider installation IDs from `runtimes --providers`.
+                print("  ID: \(installation.id)")
                 print("  Path: \(installation.path)")
                 print("  Detection: \(installation.detectionMethod.rawValue)")
                 print("  Version: \(installation.version ?? "not read")")
@@ -76,6 +79,7 @@ public enum RuntimeDiscovery {
         }
 
         print("\nImportant: detection does not prove that a runtime can launch a game.")
+        print("For pin-able runtime IDs, run `macgamebridge runtimes --providers`.")
     }
 
     // MARK: - App bundle discovery
