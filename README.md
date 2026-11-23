@@ -6,8 +6,10 @@ Windows-game compatibility on Apple Silicon Macs.
 **Initial target:** Apple M4, 16 GB unified memory, macOS 27.2.1.
 
 ## Current status
-Early development. The first release is a read-only Swift CLI. It does not install
-Wine, CrossOver, GPTK, games, or drivers, and it does not bypass DRM or anti-cheat.
+Early development. The Swift CLI performs read-only diagnostics and discovery and
+now persists *planned* game-environment metadata. Creating an environment saves
+a record only: it does not create a prefix, run Wine, launch a game, or install
+software. MacGameBridge does not bypass DRM or anti-cheat.
 
 ## Build
 Requires Swift 6 toolchain (provided by a compatible Xcode or Command Line Tools setup).
@@ -17,10 +19,16 @@ swift build
 swift run macgamebridge help
 swift run macgamebridge diagnostics
 swift run macgamebridge games
+swift run macgamebridge environments help
+swift run macgamebridge environments list
 ```
 
+Environment records are stored in
+`~/Library/Application Support/MacGameBridge/environments.json`. See
+`docs/M3-ENVIRONMENTS.md` for commands, JSON shapes, and safety boundaries.
+
 ## Project structure
-- `Sources/` — Swift CLI and core logic
+- `Sources/` — Swift CLI and core logic, including `Core/Environment` metadata
 - `database/` — data-driven game profiles
 - `docs/` — architecture, roadmap, compatibility matrix
 - `AGENTS.md` — instructions for AI coding assistants

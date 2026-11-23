@@ -27,8 +27,14 @@
 - [x] Architecture documentation
 
 ## M3 — Isolated game environments
-- [ ] Define bottle/prefix model
-- [ ] Runtime adapter protocol
+- [x] Provider-independent environment model with planned/provisioned states
+- [x] JSON-backed environment registry with injectable storage and atomic writes
+- [x] Read-only environment validation (references, runtime status, prefix safety)
+- [x] `environments list|create|show|validate` CLI with `--json`
+- [x] Swift Testing coverage using temporary directories and injected fixtures
+- [x] Architecture and milestone documentation
+- [ ] Runtime adapter protocol / runtime pinning workflow
+- [ ] Genuine provisioning with recorded evidence
 - [ ] Safe launch configuration
 - [ ] Per-game logs
 
