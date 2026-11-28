@@ -33,10 +33,19 @@
 - [x] `environments list|create|show|validate` CLI with `--json`
 - [x] Swift Testing coverage using temporary directories and injected fixtures
 - [x] Architecture and milestone documentation
-- [ ] Runtime adapter protocol / runtime pinning workflow
 - [ ] Genuine provisioning with recorded evidence
 - [ ] Safe launch configuration
 - [ ] Per-game logs
+
+## M3.1 — Runtime adapter architecture and exact pinning
+- [x] Provider-independent `RuntimeAdapter` contract with capabilities and structured validation
+- [x] `WineRuntimeAdapter` for standalone Wine only; unsupported providers fail explicitly
+- [x] `RuntimeAdapterRegistry` with injectable adapters
+- [x] Conditional, atomic runtime pin updates with stale/duplicate safeguards
+- [x] `environments pin-runtime` and `environments unpin-runtime` with `--json`
+- [x] Exact installation IDs shown in human-readable runtime discovery output
+- [x] Host capabilities, adapter registry, installations, clock, and storage injected in tests
+- [x] Architecture, milestone, and README documentation
 
 ## M4 — Compatibility database
 - [ ] Versioned test records

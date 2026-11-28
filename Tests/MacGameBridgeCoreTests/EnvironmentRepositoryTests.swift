@@ -6,7 +6,7 @@ import Testing
 private func environment(prefixURL: URL, id: String) -> GameEnvironment {
     GameEnvironment(
         id: id,
-        gameProfileID: "pes-2021",
+        gameProfileID: "game-b",
         name: "Unsafe prefix fixture",
         prefixURL: prefixURL,
         createdAt: EnvironmentTestFixtures.fixedDate,
@@ -68,9 +68,9 @@ func repositoryPreservesDataAcrossInstances() throws {
         let first = EnvironmentTestFixtures.environment(id: "env-first")
         let second = EnvironmentTestFixtures.environment(
             id: "env-second",
-            gameProfileID: "gta",
-            name: "GTA environment",
-            prefixPath: "/tmp/mgb-prefixes/gta"
+            gameProfileID: "game-d",
+            name: "Game D environment",
+            prefixPath: "/tmp/mgb-prefixes/game-d"
         )
 
         try EnvironmentRepository(storageURL: storageURL).create(first)
@@ -216,13 +216,13 @@ func repositoryRejectsDuplicateGameAndPrefixWithDifferentIDs() throws {
         let prefixPath = root.appendingPathComponent("prefix").path
         let first = EnvironmentTestFixtures.environment(
             id: "env-a",
-            gameProfileID: "pes-2021",
+            gameProfileID: "game-b",
             prefixPath: prefixPath
         )
         let second = EnvironmentTestFixtures.environment(
             id: "env-b",
-            gameProfileID: "pes-2021",
-            name: "Second PES environment",
+            gameProfileID: "game-b",
+            name: "Second Game B environment",
             prefixPath: prefixPath
         )
 
@@ -232,7 +232,7 @@ func repositoryRejectsDuplicateGameAndPrefixWithDifferentIDs() throws {
         assertRepositoryError(
             .duplicateGamePrefix(
                 id: "env-a",
-                gameProfileID: "pes-2021",
+                gameProfileID: "game-b",
                 prefixPath: prefixPath
             )
         ) {
@@ -250,8 +250,8 @@ func repositoryRejectsDuplicateGameAndPrefixWithDifferentIDs() throws {
 func repositoryNormalizesStoredPrefixForDuplicateDetection() throws {
     try EnvironmentTestFixtures.withTemporaryDirectory { root in
         let storageURL = root.appendingPathComponent("environments.json")
-        let legacyPrefixPath = "/tmp/mgb-prefixes/shared/../pes"
-        let normalizedPrefixPath = "/tmp/mgb-prefixes/pes"
+        let legacyPrefixPath = "/tmp/mgb-prefixes/shared/../game-b"
+        let normalizedPrefixPath = "/tmp/mgb-prefixes/game-b"
         let legacy = environment(
             prefixURL: URL(fileURLWithPath: legacyPrefixPath),
             id: "env-legacy"
@@ -261,14 +261,14 @@ func repositoryNormalizesStoredPrefixForDuplicateDetection() throws {
         let repository = EnvironmentRepository(storageURL: storageURL)
         let candidate = EnvironmentTestFixtures.environment(
             id: "env-new",
-            gameProfileID: "pes-2021",
+            gameProfileID: "game-b",
             prefixPath: normalizedPrefixPath
         )
 
         assertRepositoryError(
             .duplicateGamePrefix(
                 id: "env-legacy",
-                gameProfileID: "pes-2021",
+                gameProfileID: "game-b",
                 prefixPath: normalizedPrefixPath
             )
         ) {
@@ -286,23 +286,23 @@ func repositoryAllowsSamePrefixForDifferentGameProfiles() throws {
         let storageURL = root.appendingPathComponent("environments.json")
         let repository = EnvironmentRepository(storageURL: storageURL)
         let prefixPath = root.appendingPathComponent("shared-prefix").path
-        let pes = EnvironmentTestFixtures.environment(
-            id: "env-pes",
-            gameProfileID: "pes-2021",
+        let gameB = EnvironmentTestFixtures.environment(
+            id: "env-game-b",
+            gameProfileID: "game-b",
             prefixPath: prefixPath
         )
-        let gta = EnvironmentTestFixtures.environment(
-            id: "env-gta",
-            gameProfileID: "gta",
-            name: "GTA environment",
+        let gameD = EnvironmentTestFixtures.environment(
+            id: "env-game-d",
+            gameProfileID: "game-d",
+            name: "Game D environment",
             prefixPath: prefixPath
         )
 
-        try repository.create(pes)
-        try repository.create(gta)
+        try repository.create(gameB)
+        try repository.create(gameD)
 
         let listed = try repository.list()
-        #expect(listed == [gta, pes])
+        #expect(listed == [gameB, gameD])
     }
 }
 
@@ -313,13 +313,13 @@ func repositoryAllowsDifferentPrefixesForSameGameProfile() throws {
         let repository = EnvironmentRepository(storageURL: storageURL)
         let offline = EnvironmentTestFixtures.environment(
             id: "env-offline",
-            gameProfileID: "pes-2021",
+            gameProfileID: "game-b",
             name: "Offline prefix",
             prefixPath: root.appendingPathComponent("offline").path
         )
         let testing = EnvironmentTestFixtures.environment(
             id: "env-testing",
-            gameProfileID: "pes-2021",
+            gameProfileID: "game-b",
             name: "Testing prefix",
             prefixPath: root.appendingPathComponent("testing").path
         )
@@ -329,5 +329,167 @@ func repositoryAllowsDifferentPrefixesForSameGameProfile() throws {
 
         let listed = try repository.list()
         #expect(listed == [offline, testing])
+    }
+}
+
+// MARK: - Conditional runtime pin updates (M3.1)
+
+@Test
+func updateRuntimeInstallationIDChangesOnlyPinAndTimestamp() throws {
+    try EnvironmentTestFixtures.withTemporaryDirectory { root in
+        let repository = EnvironmentRepository(
+            storageURL: root.appendingPathComponent("environments.json")
+        )
+        let original = EnvironmentTestFixtures.environment(
+            id: "env-update",
+            gameProfileID: "game-d",
+            name: "Game D update",
+            prefixPath: root.appendingPathComponent("prefixes/game-d").path
+        )
+        try repository.create(original)
+
+        let updated = try repository.updateRuntimeInstallationID(
+            for: original,
+            runtimeInstallationID: "wine:/opt/wine/bin/wine64",
+            updatedAt: Date(timeIntervalSince1970: 1_700_003_600)
+        )
+
+        #expect(updated.id == original.id)
+        #expect(updated.gameProfileID == original.gameProfileID)
+        #expect(updated.name == original.name)
+        #expect(updated.prefixURL == original.prefixURL)
+        #expect(updated.lifecycleState == original.lifecycleState)
+        #expect(updated.createdAt == original.createdAt)
+        #expect(updated.updatedAt == Date(timeIntervalSince1970: 1_700_003_600))
+        #expect(updated.runtimeInstallationID == "wine:/opt/wine/bin/wine64")
+        let fetchedUpdated = try repository.get(id: original.id)
+        #expect(fetchedUpdated == updated)
+    }
+}
+
+@Test
+func updateRuntimeInstallationIDRejectsStaleRecordsWithoutWriting() throws {
+    try EnvironmentTestFixtures.withTemporaryDirectory { root in
+        let repository = EnvironmentRepository(
+            storageURL: root.appendingPathComponent("environments.json")
+        )
+        let original = EnvironmentTestFixtures.environment(id: "env-stale")
+        try repository.create(original)
+        let newer = try repository.updateRuntimeInstallationID(
+            for: original,
+            runtimeInstallationID: "wine:/first",
+            updatedAt: Date(timeIntervalSince1970: 1_700_000_100)
+        )
+        let before = try Data(contentsOf: repository.storageURL)
+
+        assertRepositoryError(.staleRecord(original.id)) {
+            _ = try repository.updateRuntimeInstallationID(
+                for: original,
+                runtimeInstallationID: "wine:/second",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_200)
+            )
+        }
+
+        let after = try Data(contentsOf: repository.storageURL)
+        #expect(after == before)
+        let fetchedNewer = try repository.get(id: original.id)
+        #expect(fetchedNewer == newer)
+    }
+}
+
+@Test
+func updateRuntimeInstallationIDRejectsMissingAndDuplicateRecords() throws {
+    try EnvironmentTestFixtures.withTemporaryDirectory { root in
+        let storageURL = root.appendingPathComponent("environments.json")
+        let repository = EnvironmentRepository(storageURL: storageURL)
+        let environment = EnvironmentTestFixtures.environment(id: "env-check")
+
+        assertRepositoryError(.environmentNotFound("env-check")) {
+            _ = try repository.updateRuntimeInstallationID(
+                for: environment,
+                runtimeInstallationID: "wine:/first",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_100)
+            )
+        }
+
+        try EnvironmentTestFixtures.writeRegistry(
+            at: storageURL,
+            environments: [environment, environment]
+        )
+        let before = try Data(contentsOf: storageURL)
+        assertRepositoryError(.duplicateID("env-check")) {
+            _ = try repository.updateRuntimeInstallationID(
+                for: environment,
+                runtimeInstallationID: "wine:/first",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_100)
+            )
+        }
+        let after = try Data(contentsOf: storageURL)
+        #expect(after == before)
+    }
+}
+
+@Test
+func updateRuntimeInstallationIDReappliesDuplicateGamePrefixSafeguard() throws {
+    try EnvironmentTestFixtures.withTemporaryDirectory { root in
+        let storageURL = root.appendingPathComponent("environments.json")
+        let first = EnvironmentTestFixtures.environment(id: "env-a")
+        let duplicate = EnvironmentTestFixtures.environment(id: "env-b")
+        try EnvironmentTestFixtures.writeRegistry(at: storageURL, environments: [first, duplicate])
+        let before = try Data(contentsOf: storageURL)
+        let repository = EnvironmentRepository(storageURL: storageURL)
+
+        assertRepositoryError(
+            .duplicateGamePrefix(
+                id: "env-a",
+                gameProfileID: first.gameProfileID,
+                prefixPath: first.prefixPath
+            )
+        ) {
+            _ = try repository.updateRuntimeInstallationID(
+                for: duplicate,
+                runtimeInstallationID: "wine:/first",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_100)
+            )
+        }
+        let after = try Data(contentsOf: storageURL)
+        #expect(after == before)
+    }
+}
+
+@Test
+func updateRuntimeInstallationIDRejectsEmptyPinAndCorruptRegistry() throws {
+    try EnvironmentTestFixtures.withTemporaryDirectory { root in
+        let storageURL = root.appendingPathComponent("environments.json")
+        let repository = EnvironmentRepository(storageURL: storageURL)
+        let environment = EnvironmentTestFixtures.environment(id: "env-empty")
+        try repository.create(environment)
+
+        assertRepositoryError(.invalidEnvironment("runtime installation ID must not be empty")) {
+            _ = try repository.updateRuntimeInstallationID(
+                for: environment,
+                runtimeInstallationID: "   ",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_100)
+            )
+        }
+
+        let corrupted = Data("{ not json".utf8)
+        try corrupted.write(to: storageURL)
+        do {
+            _ = try repository.updateRuntimeInstallationID(
+                for: environment,
+                runtimeInstallationID: "wine:/first",
+                updatedAt: Date(timeIntervalSince1970: 1_700_000_100)
+            )
+            Issue.record("Expected corrupted registry error")
+        } catch let error as EnvironmentRepositoryError {
+            if case .corruptedRegistry = error {
+                // Expected.
+            } else {
+                Issue.record("Unexpected error: \(error)")
+            }
+        }
+        let after = try Data(contentsOf: storageURL)
+        #expect(after == corrupted)
     }
 }

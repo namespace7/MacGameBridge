@@ -1,37 +1,37 @@
 [
   {
-    "id": "ea-fc-fifa",
-    "title": "FIFA / EA SPORTS FC",
+    "id": "game-a",
+    "title": "Game A",
     "editionsToInvestigate": [
-      "Older FIFA release (user to specify)",
-      "EA SPORTS FC release (user to specify)"
+      "Edition A1 (user to specify)",
+      "Edition A2 (user to specify)"
     ],
     "primaryRisks": [
-      "EA App and DRM",
-      "EA AntiCheat in newer releases",
+      "Publisher launcher and DRM",
+      "Anti-cheat in newer releases",
       "DirectX and graphics backend"
     ],
     "initialMode": "Offline launch and gameplay before online testing"
   },
   {
-    "id": "pes-2021",
-    "title": "PES 2021",
+    "id": "game-b",
+    "title": "Game B",
     "editionsToInvestigate": [
-      "eFootball PES 2021 Season Update"
+      "Edition B (user to specify)"
     ],
     "primaryRisks": [
-      "Steam/runtime dependencies",
+      "Store/runtime dependencies",
       "DirectX compatibility",
       "Online service availability"
     ],
     "initialMode": "Offline exhibition / training before online testing"
   },
   {
-    "id": "nfs-most-wanted",
-    "title": "Need for Speed: Most Wanted",
+    "id": "game-c",
+    "title": "Game C",
     "editionsToInvestigate": [
-      "Original 2005 PC release",
-      "2012 release \u2014 confirm if intended"
+      "Edition C1 (user to specify)",
+      "Edition C2 (user to specify)"
     ],
     "primaryRisks": [
       "Legacy DirectX",
@@ -41,15 +41,15 @@
     "initialMode": "Offline gameplay"
   },
   {
-    "id": "gta",
-    "title": "Grand Theft Auto",
+    "id": "game-d",
+    "title": "Game D",
     "editionsToInvestigate": [
-      "GTA V Legacy \u2014 provisional target; confirm edition"
+      "Edition D (user to specify)"
     ],
     "primaryRisks": [
-      "Rockstar Games Launcher",
+      "Publisher launcher",
       "DRM",
-      "BattlEye for GTA Online where applicable"
+      "Online anti-cheat where applicable"
     ],
     "initialMode": "Story Mode before any multiplayer assessment"
   }

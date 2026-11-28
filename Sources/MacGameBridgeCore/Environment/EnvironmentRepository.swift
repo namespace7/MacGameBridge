@@ -4,6 +4,8 @@ import Foundation
 public enum EnvironmentRepositoryError: Error, Equatable, CustomStringConvertible {
     case duplicateID(String)
     case duplicateGamePrefix(id: String, gameProfileID: String, prefixPath: String)
+    case environmentNotFound(String)
+    case staleRecord(String)
     case corruptedRegistry(URL, String)
     case unreadableRegistry(URL, String)
     case writeFailed(URL, String)
@@ -13,6 +15,10 @@ public enum EnvironmentRepositoryError: Error, Equatable, CustomStringConvertibl
         switch self {
         case .duplicateID(let id):
             return "An environment with ID '\(id)' already exists. No record was changed."
+        case .environmentNotFound(let id):
+            return "No environment with ID '\(id)' is recorded. No record was changed."
+        case .staleRecord(let id):
+            return "Environment '\(id)' changed since it was read. No record was changed; re-read it and retry."
         case .duplicateGamePrefix(let id, let gameProfileID, let prefixPath):
             return "Environment '\(id)' already records game '\(gameProfileID)' at prefix '\(prefixPath)'. Use that ID or choose a different prefix. No record was changed."
         case .corruptedRegistry(let url, let reason):
@@ -114,6 +120,83 @@ public struct EnvironmentRepository {
         document.environments.append(environment)
         document.environments.sort { $0.id < $1.id }
         try writeDocument(document)
+    }
+
+    /// Change only the runtime pin and `updatedAt` of an existing record.
+    ///
+    /// - Parameters:
+    ///   - expected: The record as read by the caller. The stored record must be
+    ///     equal to it; this rejects stale updates instead of overwriting a
+    ///     concurrent change.
+    ///   - runtimeInstallationID: The exact installation ID to store, or nil to unpin.
+    ///   - updatedAt: Timestamp supplied by the injected time provider.
+    /// - Returns: The updated record.
+    ///
+    /// The read, checks, and atomic write happen under the repository's existing
+    /// lock. ID, game profile, name, prefix URL, lifecycle state, and creation
+    /// timestamp are copied from the stored record and cannot change here.
+    /// Duplicate-ID and duplicate-game-prefix safeguards are re-applied before
+    /// writing. No prefix directory is created, modified, or inspected.
+    public func updateRuntimeInstallationID(
+        for expected: GameEnvironment,
+        runtimeInstallationID: String?,
+        updatedAt: Date
+    ) throws -> GameEnvironment {
+        guard !expected.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw EnvironmentRepositoryError.invalidEnvironment("ID must not be empty")
+        }
+        if let runtimeInstallationID,
+           runtimeInstallationID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            throw EnvironmentRepositoryError.invalidEnvironment("runtime installation ID must not be empty")
+        }
+
+        Self.lock.lock()
+        defer { Self.lock.unlock() }
+
+        var document = try readDocument()
+        let matchingIndexes = document.environments.indices.filter {
+            document.environments[$0].id == expected.id
+        }
+        guard matchingIndexes.count <= 1 else {
+            throw EnvironmentRepositoryError.duplicateID(expected.id)
+        }
+        guard let index = matchingIndexes.first else {
+            throw EnvironmentRepositoryError.environmentNotFound(expected.id)
+        }
+        guard document.environments[index] == expected else {
+            throw EnvironmentRepositoryError.staleRecord(expected.id)
+        }
+
+        let current = document.environments[index]
+        let updated = GameEnvironment(
+            id: current.id,
+            gameProfileID: current.gameProfileID,
+            runtimeInstallationID: runtimeInstallationID,
+            name: current.name,
+            prefixURL: current.prefixURL,
+            lifecycleState: current.lifecycleState,
+            createdAt: current.createdAt,
+            updatedAt: updatedAt
+        )
+        try validateRecord(updated)
+
+        let prefixPath = normalizedPrefixPath(updated.prefixURL.path)
+        if let duplicate = document.environments.first(where: {
+            $0.id != updated.id
+                && $0.gameProfileID == updated.gameProfileID
+                && normalizedPrefixPath($0.prefixURL.path) == prefixPath
+        }) {
+            throw EnvironmentRepositoryError.duplicateGamePrefix(
+                id: duplicate.id,
+                gameProfileID: duplicate.gameProfileID,
+                prefixPath: normalizedPrefixPath(duplicate.prefixURL.path)
+            )
+        }
+
+        document.environments[index] = updated
+        document.environments.sort { $0.id < $1.id }
+        try writeDocument(document)
+        return updated
     }
 
     // MARK: - Reading

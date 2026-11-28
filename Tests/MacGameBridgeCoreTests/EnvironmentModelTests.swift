@@ -14,9 +14,9 @@ func environmentJSONRoundTrip() throws {
 
     #expect(decoded == environment)
     #expect(decoded.id == "env-1")
-    #expect(decoded.gameProfileID == "pes-2021")
+    #expect(decoded.gameProfileID == "game-b")
     #expect(decoded.runtimeInstallationID == "wine:/usr/local/bin/wine64")
-    #expect(decoded.name == "PES environment")
+    #expect(decoded.name == "Game B environment")
     #expect(decoded.prefixURL.path == environment.prefixPath)
     #expect(decoded.lifecycleState == .planned)
 }

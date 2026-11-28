@@ -31,10 +31,10 @@ legitimate Windows-game compatibility environments on Apple Silicon.
 6. Do not invent benchmark numbers or compatibility claims.
 
 ## Current scope
-- FIFA / EA SPORTS FC (exact editions pending)
-- eFootball PES 2021
-- Need for Speed: Most Wanted (confirm 2005 vs 2012)
-- GTA (GTA V Legacy is provisional from prior planning; confirm edition)
+- Game A (exact editions pending)
+- Game B
+- Game C (confirm intended edition and release year)
+- Game D (edition provisional from prior planning; confirm edition)
 
 ## Current implementation guidance
 - M1 hardware intelligence is committed; preserve the `DiagnosticReport` M1 JSON shape unless a deliberate schema-version change is documented.

@@ -5,10 +5,10 @@ Never infer success from another edition in the same franchise.
 
 | Game | Edition | Offline | Online | Main risks | Status |
 |---|---|---|---|---|---|
-| FIFA / EA SPORTS FC | Exact edition pending | Unknown | Unknown | EA App, DRM, EA AntiCheat, DirectX | Not tested |
-| PES | PES 2021 Season Update | Unknown | Unknown | Steam, DirectX, online services | Not tested |
-| NFS | Most Wanted 2005 or 2012 pending | Unknown | Unknown | Legacy DirectX, DRM, controller | Not tested |
-| GTA | GTA V Legacy provisional | Unknown | Unknown | Rockstar launcher, DRM, BattlEye | Not tested |
+| Game A | Exact edition pending | Unknown | Unknown | Publisher launcher, DRM, anti-cheat, DirectX | Not tested |
+| Game B | Exact edition pending | Unknown | Unknown | Store, DirectX, online services | Not tested |
+| Game C | Edition and release year pending | Unknown | Unknown | Legacy DirectX, DRM, controller | Not tested |
+| Game D | Exact edition pending | Unknown | Unknown | Launcher, DRM, online anti-cheat | Not tested |
 
 Every test record must include:
 - Mac model/chip, RAM, macOS version/build
