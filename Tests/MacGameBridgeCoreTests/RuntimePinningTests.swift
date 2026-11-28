@@ -404,9 +404,9 @@ func pinPersistsRuntimeIDAndUpdatedAtAndPreservesOtherFields() throws {
         let repository = EnvironmentRepository(storageURL: root.appendingPathComponent("environments.json"))
         let original = EnvironmentTestFixtures.environment(
             id: "env-pin",
-            gameProfileID: "gta",
-            name: "GTA test",
-            prefixPath: root.appendingPathComponent("prefixes/gta").path,
+            gameProfileID: "game-d",
+            name: "Game D test",
+            prefixPath: root.appendingPathComponent("prefixes/game-d").path,
             lifecycleState: .planned
         )
         try repository.create(original)
@@ -521,9 +521,9 @@ func unpinPreservesEveryOtherEnvironmentField() throws {
         let repository = EnvironmentRepository(storageURL: root.appendingPathComponent("environments.json"))
         let original = EnvironmentTestFixtures.environment(
             id: "env-unpin",
-            gameProfileID: "pes-2021",
-            name: "PES unpin",
-            prefixPath: root.appendingPathComponent("prefixes/pes").path
+            gameProfileID: "game-b",
+            name: "Game B unpin",
+            prefixPath: root.appendingPathComponent("prefixes/game-b").path
         )
         try repository.create(original)
         let installation = EnvironmentTestFixtures.installation()

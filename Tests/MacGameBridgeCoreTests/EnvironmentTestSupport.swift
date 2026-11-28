@@ -19,11 +19,11 @@ enum EnvironmentTestFixtures {
         return try body(root)
     }
 
-    static func profile(id: String = "pes-2021") -> GameProfile {
+    static func profile(id: String = "game-b") -> GameProfile {
         GameProfile(
             id: id,
-            title: "PES 2021",
-            editionsToInvestigate: ["eFootball PES 2021 Season Update"],
+            title: "Game B",
+            editionsToInvestigate: ["Edition B (fixture)"],
             primaryRisks: ["Online service availability"],
             initialMode: "Offline exhibition"
         )
@@ -65,10 +65,10 @@ enum EnvironmentTestFixtures {
 
     static func environment(
         id: String = "env-1",
-        gameProfileID: String = "pes-2021",
+        gameProfileID: String = "game-b",
         runtimeInstallationID: String? = nil,
-        name: String = "PES environment",
-        prefixPath: String = "/tmp/mgb-prefixes/pes",
+        name: String = "Game B environment",
+        prefixPath: String = "/tmp/mgb-prefixes/game-b",
         lifecycleState: EnvironmentLifecycleState = .planned,
         createdAt: Date = fixedDate,
         updatedAt: Date = fixedDate

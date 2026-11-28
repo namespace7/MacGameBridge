@@ -43,13 +43,13 @@ and Sikarugir installations are discovered but cannot be pinned yet.
 - `AGENTS.md` — instructions for AI coding assistants
 
 ## Target games
-- FIFA / EA SPORTS FC — exact editions to be confirmed
-- eFootball PES 2021
-- Need for Speed: Most Wanted — confirm 2005 or 2012
-- GTA — GTA V Legacy is provisional; confirm edition
+- Game A — exact editions to be confirmed
+- Game B
+- Game C — confirm intended edition and release year
+- Game D — edition provisional; confirm edition
 
 ## Legal and safety
-MacGameBridge is not affiliated with CodeWeavers, Apple, Valve, EA, Konami,
-Electronic Arts, Rockstar, or any game publisher. Third-party components retain
-their own licenses and trademarks. Use only games and software you are licensed
-to use. No anti-cheat or DRM bypass functionality will be developed.
+MacGameBridge is not affiliated with any runtime vendor, platform vendor,
+storefront, or game publisher. Third-party components retain their own licenses
+and trademarks. Use only games and software you are licensed to use. No
+anti-cheat or DRM bypass functionality will be developed.

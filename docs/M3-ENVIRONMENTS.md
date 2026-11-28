@@ -43,11 +43,11 @@ allows isolated temporary-directory tests. The file shape is:
   "environments": [
     {
       "createdAt": "2023-11-14T22:13:20Z",
-      "gameProfileID": "pes-2021",
+      "gameProfileID": "game-b",
       "id": "env-...",
       "lifecycleState": "planned",
-      "name": "PES 2021 offline",
-      "prefixURL": "file:///Users/me/Games/prefixes/pes-2021",
+      "name": "Game B offline",
+      "prefixURL": "file:///Users/me/Games/prefixes/game-b",
       "runtimeInstallationID": null,
       "updatedAt": "2023-11-14T22:13:20Z"
     }

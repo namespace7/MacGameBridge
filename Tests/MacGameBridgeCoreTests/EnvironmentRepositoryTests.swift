@@ -6,7 +6,7 @@ import Testing
 private func environment(prefixURL: URL, id: String) -> GameEnvironment {
     GameEnvironment(
         id: id,
-        gameProfileID: "pes-2021",
+        gameProfileID: "game-b",
         name: "Unsafe prefix fixture",
         prefixURL: prefixURL,
         createdAt: EnvironmentTestFixtures.fixedDate,
@@ -68,9 +68,9 @@ func repositoryPreservesDataAcrossInstances() throws {
         let first = EnvironmentTestFixtures.environment(id: "env-first")
         let second = EnvironmentTestFixtures.environment(
             id: "env-second",
-            gameProfileID: "gta",
-            name: "GTA environment",
-            prefixPath: "/tmp/mgb-prefixes/gta"
+            gameProfileID: "game-d",
+            name: "Game D environment",
+            prefixPath: "/tmp/mgb-prefixes/game-d"
         )
 
         try EnvironmentRepository(storageURL: storageURL).create(first)
@@ -216,13 +216,13 @@ func repositoryRejectsDuplicateGameAndPrefixWithDifferentIDs() throws {
         let prefixPath = root.appendingPathComponent("prefix").path
         let first = EnvironmentTestFixtures.environment(
             id: "env-a",
-            gameProfileID: "pes-2021",
+            gameProfileID: "game-b",
             prefixPath: prefixPath
         )
         let second = EnvironmentTestFixtures.environment(
             id: "env-b",
-            gameProfileID: "pes-2021",
-            name: "Second PES environment",
+            gameProfileID: "game-b",
+            name: "Second Game B environment",
             prefixPath: prefixPath
         )
 
@@ -232,7 +232,7 @@ func repositoryRejectsDuplicateGameAndPrefixWithDifferentIDs() throws {
         assertRepositoryError(
             .duplicateGamePrefix(
                 id: "env-a",
-                gameProfileID: "pes-2021",
+                gameProfileID: "game-b",
                 prefixPath: prefixPath
             )
         ) {
@@ -250,8 +250,8 @@ func repositoryRejectsDuplicateGameAndPrefixWithDifferentIDs() throws {
 func repositoryNormalizesStoredPrefixForDuplicateDetection() throws {
     try EnvironmentTestFixtures.withTemporaryDirectory { root in
         let storageURL = root.appendingPathComponent("environments.json")
-        let legacyPrefixPath = "/tmp/mgb-prefixes/shared/../pes"
-        let normalizedPrefixPath = "/tmp/mgb-prefixes/pes"
+        let legacyPrefixPath = "/tmp/mgb-prefixes/shared/../game-b"
+        let normalizedPrefixPath = "/tmp/mgb-prefixes/game-b"
         let legacy = environment(
             prefixURL: URL(fileURLWithPath: legacyPrefixPath),
             id: "env-legacy"
@@ -261,14 +261,14 @@ func repositoryNormalizesStoredPrefixForDuplicateDetection() throws {
         let repository = EnvironmentRepository(storageURL: storageURL)
         let candidate = EnvironmentTestFixtures.environment(
             id: "env-new",
-            gameProfileID: "pes-2021",
+            gameProfileID: "game-b",
             prefixPath: normalizedPrefixPath
         )
 
         assertRepositoryError(
             .duplicateGamePrefix(
                 id: "env-legacy",
-                gameProfileID: "pes-2021",
+                gameProfileID: "game-b",
                 prefixPath: normalizedPrefixPath
             )
         ) {
@@ -286,23 +286,23 @@ func repositoryAllowsSamePrefixForDifferentGameProfiles() throws {
         let storageURL = root.appendingPathComponent("environments.json")
         let repository = EnvironmentRepository(storageURL: storageURL)
         let prefixPath = root.appendingPathComponent("shared-prefix").path
-        let pes = EnvironmentTestFixtures.environment(
-            id: "env-pes",
-            gameProfileID: "pes-2021",
+        let gameB = EnvironmentTestFixtures.environment(
+            id: "env-game-b",
+            gameProfileID: "game-b",
             prefixPath: prefixPath
         )
-        let gta = EnvironmentTestFixtures.environment(
-            id: "env-gta",
-            gameProfileID: "gta",
-            name: "GTA environment",
+        let gameD = EnvironmentTestFixtures.environment(
+            id: "env-game-d",
+            gameProfileID: "game-d",
+            name: "Game D environment",
             prefixPath: prefixPath
         )
 
-        try repository.create(pes)
-        try repository.create(gta)
+        try repository.create(gameB)
+        try repository.create(gameD)
 
         let listed = try repository.list()
-        #expect(listed == [gta, pes])
+        #expect(listed == [gameB, gameD])
     }
 }
 
@@ -313,13 +313,13 @@ func repositoryAllowsDifferentPrefixesForSameGameProfile() throws {
         let repository = EnvironmentRepository(storageURL: storageURL)
         let offline = EnvironmentTestFixtures.environment(
             id: "env-offline",
-            gameProfileID: "pes-2021",
+            gameProfileID: "game-b",
             name: "Offline prefix",
             prefixPath: root.appendingPathComponent("offline").path
         )
         let testing = EnvironmentTestFixtures.environment(
             id: "env-testing",
-            gameProfileID: "pes-2021",
+            gameProfileID: "game-b",
             name: "Testing prefix",
             prefixPath: root.appendingPathComponent("testing").path
         )
@@ -342,9 +342,9 @@ func updateRuntimeInstallationIDChangesOnlyPinAndTimestamp() throws {
         )
         let original = EnvironmentTestFixtures.environment(
             id: "env-update",
-            gameProfileID: "gta",
-            name: "GTA update",
-            prefixPath: root.appendingPathComponent("prefixes/gta").path
+            gameProfileID: "game-d",
+            name: "Game D update",
+            prefixPath: root.appendingPathComponent("prefixes/game-d").path
         )
         try repository.create(original)
 

@@ -13,10 +13,10 @@ func parsesEnvironmentCommands() throws {
     let list = try EnvironmentCLI.parse(["list"])
     let listJSON = try EnvironmentCLI.parse(["list", "--json"])
     let create = try EnvironmentCLI.parse([
-        "create", "--game", "pes-2021", "--name", "PES", "--prefix", "/tmp/p"
+        "create", "--game", "game-b", "--name", "Game B", "--prefix", "/tmp/p"
     ])
     let createReordered = try EnvironmentCLI.parse([
-        "create", "--prefix", "/tmp/p", "--name", "PES", "--game", "pes-2021", "--json"
+        "create", "--prefix", "/tmp/p", "--name", "Game B", "--game", "game-b", "--json"
     ])
     let show = try EnvironmentCLI.parse(["show", "env-1"])
     let validate = try EnvironmentCLI.parse(["validate", "env-1", "--json"])
@@ -24,8 +24,8 @@ func parsesEnvironmentCommands() throws {
 
     #expect(list == .list(asJSON: false))
     #expect(listJSON == .list(asJSON: true))
-    #expect(create == .create(gameID: "pes-2021", name: "PES", prefixPath: "/tmp/p", asJSON: false))
-    #expect(createReordered == .create(gameID: "pes-2021", name: "PES", prefixPath: "/tmp/p", asJSON: true))
+    #expect(create == .create(gameID: "game-b", name: "Game B", prefixPath: "/tmp/p", asJSON: false))
+    #expect(createReordered == .create(gameID: "game-b", name: "Game B", prefixPath: "/tmp/p", asJSON: true))
     #expect(show == .show(id: "env-1", asJSON: false))
     #expect(validate == .validate(id: "env-1", asJSON: true))
     #expect(help == .help)
@@ -40,20 +40,20 @@ func cliArgumentValidationIsActionable() {
         _ = try EnvironmentCLI.parse(["launch"])
     }
     assertEnvironmentCLIError(.missingOption("--game")) {
-        _ = try EnvironmentCLI.parse(["create", "--name", "PES", "--prefix", "/tmp/p"])
+        _ = try EnvironmentCLI.parse(["create", "--name", "Game B", "--prefix", "/tmp/p"])
     }
     assertEnvironmentCLIError(.missingOption("--game")) {
-        _ = try EnvironmentCLI.parse(["create", "--game", "--name", "PES", "--prefix", "/tmp/p"])
+        _ = try EnvironmentCLI.parse(["create", "--game", "--name", "Game B", "--prefix", "/tmp/p"])
     }
     assertEnvironmentCLIError(.missingOption("--name")) {
-        _ = try EnvironmentCLI.parse(["create", "--game", "pes-2021", "--prefix", "/tmp/p"])
+        _ = try EnvironmentCLI.parse(["create", "--game", "game-b", "--prefix", "/tmp/p"])
     }
     assertEnvironmentCLIError(.missingOption("--prefix")) {
-        _ = try EnvironmentCLI.parse(["create", "--game", "pes-2021", "--name", "PES"])
+        _ = try EnvironmentCLI.parse(["create", "--game", "game-b", "--name", "Game B"])
     }
     assertEnvironmentCLIError(.invalidOptionValue("--game", "specified more than once")) {
         _ = try EnvironmentCLI.parse([
-            "create", "--game", "pes-2021", "--name", "PES", "--prefix", "/tmp/p", "--game", "gta"
+            "create", "--game", "game-b", "--name", "Game B", "--prefix", "/tmp/p", "--game", "game-d"
         ])
     }
     assertEnvironmentCLIError(.unknownOption("--force")) {
@@ -90,7 +90,7 @@ func createSavesMetadataOnlyAndDoesNotTouchRuntimesOrPrefix() throws {
         )
 
         let output = try EnvironmentCLI.run(
-            ["create", "--game", "pes-2021", "--name", "PES", "--prefix", prefixPath],
+            ["create", "--game", "game-b", "--name", "Game B", "--prefix", prefixPath],
             services: services
         )
 
@@ -117,9 +117,9 @@ func createRejectsUnknownGameIDWithKnownIDs() throws {
         )
         let services = EnvironmentTestFixtures.services(repository: repository)
 
-        assertEnvironmentCLIError(.invalidGameID("nope", ["pes-2021"])) {
+        assertEnvironmentCLIError(.invalidGameID("nope", ["game-b"])) {
             _ = try EnvironmentCLI.run(
-                ["create", "--game", "nope", "--name", "PES", "--prefix", "\(root.path)/prefix"],
+                ["create", "--game", "nope", "--name", "Game B", "--prefix", "\(root.path)/prefix"],
                 services: services
             )
         }
@@ -137,7 +137,7 @@ func createRejectsUnsafePrefixPath() throws {
 
         do {
             _ = try EnvironmentCLI.run(
-                ["create", "--game", "pes-2021", "--name", "PES", "--prefix", "relative/prefix"],
+                ["create", "--game", "game-b", "--name", "Game B", "--prefix", "relative/prefix"],
                 services: services
             )
             Issue.record("Expected invalid prefix error")
@@ -161,14 +161,14 @@ func createRejectsDuplicateEnvironmentWithExistingID() throws {
         )
         let services = EnvironmentTestFixtures.services(repository: repository)
         let prefixPath = root.appendingPathComponent("prefix").path
-        let arguments = ["create", "--game", "pes-2021", "--name", "PES", "--prefix", prefixPath]
+        let arguments = ["create", "--game", "game-b", "--name", "Game B", "--prefix", prefixPath]
 
         _ = try EnvironmentCLI.run(arguments, services: services)
 
         assertEnvironmentCLIError(
             .duplicateEnvironment(
                 id: "env-test-1",
-                gameProfileID: "pes-2021",
+                gameProfileID: "game-b",
                 prefixPath: prefixPath
             )
         ) {
@@ -184,12 +184,12 @@ func createRejectsDuplicateEnvironmentWithExistingID() throws {
 func repositoryDuplicateGamePrefixMapsToActionableCLIError() throws {
     try EnvironmentTestFixtures.withTemporaryDirectory { root in
         let storageURL = root.appendingPathComponent("environments.json")
-        let normalizedPrefixPath = "/tmp/mgb-prefixes/pes"
+        let normalizedPrefixPath = "/tmp/mgb-prefixes/game-b"
         let legacy = GameEnvironment(
             id: "env-legacy",
-            gameProfileID: "pes-2021",
+            gameProfileID: "game-b",
             name: "Legacy prefix record",
-            prefixURL: URL(fileURLWithPath: "/tmp/mgb-prefixes/shared/../pes"),
+            prefixURL: URL(fileURLWithPath: "/tmp/mgb-prefixes/shared/../game-b"),
             createdAt: EnvironmentTestFixtures.fixedDate,
             updatedAt: EnvironmentTestFixtures.fixedDate
         )
@@ -202,13 +202,13 @@ func repositoryDuplicateGamePrefixMapsToActionableCLIError() throws {
         assertEnvironmentCLIError(
             .duplicateEnvironment(
                 id: "env-legacy",
-                gameProfileID: "pes-2021",
+                gameProfileID: "game-b",
                 prefixPath: normalizedPrefixPath
             )
         ) {
             _ = try EnvironmentCLI.run(
                 [
-                    "create", "--game", "pes-2021", "--name", "New PES",
+                    "create", "--game", "game-b", "--name", "New Game B",
                     "--prefix", normalizedPrefixPath
                 ],
                 services: services

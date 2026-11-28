@@ -98,7 +98,7 @@ func existingGameProfileIsNotReportedMissing() throws {
             prefixPath: root.appendingPathComponent("prefix").path
         )
         let dependencies = EnvironmentValidationDependencies(
-            gameProfiles: { [EnvironmentTestFixtures.profile(id: "pes-2021")] },
+            gameProfiles: { [EnvironmentTestFixtures.profile(id: "game-b")] },
             runtimeInstallations: { [] },
             fileManager: .default,
             validatePrefixPath: { try EnvironmentPrefixPolicy.validate($0) }
@@ -217,7 +217,7 @@ func invalidPrefixPathsAreRejected() throws {
     let relativeURL = try #require(URL(string: "relative/prefix"))
     let relative = GameEnvironment(
         id: "env-relative",
-        gameProfileID: "pes-2021",
+        gameProfileID: "game-b",
         name: "Relative prefix",
         prefixURL: relativeURL,
         createdAt: EnvironmentTestFixtures.fixedDate,
@@ -241,7 +241,7 @@ func nonFilePrefixURLIsReportedInvalidWithoutFilesystemInspection() throws {
     let nonFileURL = try #require(URL(string: "https://example.com/prefix"))
     let environment = GameEnvironment(
         id: "env-non-file",
-        gameProfileID: "pes-2021",
+        gameProfileID: "game-b",
         name: "Non-file prefix",
         prefixURL: nonFileURL,
         createdAt: EnvironmentTestFixtures.fixedDate,
